@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ePhone-Book</title>
+    <link rel="stylesheet" href="src/index.css" />
+    <link rel="stylesheet" href="mediaqueries.css" />
+    <style>
+      #container {
+        max-width: 600px;
+        margin: 0 auto;
+        padding: 4px;
+        text-align: center;
+      }
+      #fileInput {
+        display: none;
+      }
+      #fileInputCallerQueue {
+        display: none;
+      }
+      #label {
+        font-size: small;
+      }
+    </style>
+
+    <script>
+      function show(shown, hidden) {
+        document.getElementById(shown).style.display = "block";
+        document.getElementById(hidden).style.display = "none";
+        return false;
+      }
+    </script>
+  </head>
+
+  <body>
+    <div id="mainPage">
+      <nav class="welcome-text">
+        <h1 class="title">Welcome to your</h1>
+        <h1 class="title">ePhone-Book!</h1>
+      </nav>
+
+      <section id="profile">
+        <div class="section__pic-container">
+          <img src="./assets/phonebook.png" alt="Phonebook Picture" />
+        </div>
+        <div class="section__text">
+          <p class="section__text__p2">What would you like to manage?</p>
+          <div class="btn-container">
+            <button
+              class="btn btn-color-2"
+              onclick="return show('contactsPage', 'mainPage')"
+            >
+              Contacts
+            </button>
+            <button
+              class="btn btn-color-1"
+              onclick="return show('CallerQueuePage', 'mainPage')"
+            >
+              Caller Queue
+            </button>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <div id="contactsPage" style="display: none">
+      <div id="container">
+        <h2 style="padding-top: 3vh; padding-bottom: 3vh">Add New Contact</h2>
+        <input
+          class="text-input"
+          type="text"
+          id="nameInput"
+          placeholder="Name"
+        />
+        <input
+          class="text-input"
+          type="text"
+          id="phoneInput"
+          placeholder="Phone Number"
+        />
+        <button class="btn btn-color-1" onclick="addNewContact()">
+          Add Contact
+        </button>
+
+        <h2 style="padding-top: 3vh; padding-bottom: 3vh">Contact List</h2>
+        <div id="contactList"></div>
+        <div class="utility-selection">
+          <button class="btn btn-color-2" onclick="saveContactListToFile()">
+            Save Contacts
+          </button>
+
+          <input
+            type="file"
+            id="fileInput"
+            accept=".json"
+            onchange="loadContactListFromFile(event)"
+          />
+          <label for="fileInput" id="label" class="btn btn-color-2"
+            >Load Contacts</label
+          >
+
+          <button class="btn btn-color-1" onclick="clearContacts()">
+            Clear
+          </button>
+        </div>
+      </div>
+
+      <div class="nav-container">
+        <button
+          class="btn btn-color-1"
+          onclick="return show('mainPage', 'contactsPage')"
+        >
+          Home Menu
+        </button>
+      </div>
+    </div>
+
+    <div id="CallerQueuePage" style="display: none">
+      <div id="container">
+        <h2 style="padding-top: 3vh; padding-bottom: 3vh">
+          Caller Queue Management
+        </h2>
+        <div class="input-container">
+          <input
+            class="text-input"
+            type="text"
+            id="callerName"
+            placeholder="Enter caller's name"
+          />
+          <button class="btn btn-color-1" onclick="addToCallQueue()">
+            Add Caller
+          </button>
+        </div>
+
+        <h2 style="padding-top: 3vh; padding-bottom: 3vh">Caller Queue:</h2>
+        <div id="output"></div>
+
+        <div class="utility-selection">
+          <button class="btn btn-color-2" onclick="saveCallQueueToFile()">
+            Save Queue
+          </button>
+          <input
+            type="file"
+            id="fileInputCallerQueue"
+            accept=".txt"
+            onchange="loadCallQueueFromFile(event)"
+          />
+          <label
+            class="btn btn-color-2"
+            for="fileInputCallerQueue"
+            id="loadFromFileBtn"
+            >Load Queue</label
+          >
+          <button class="btn btn-color-1" onclick="popToCallQueue()">
+            Remove Caller
+          </button>
+        </div>
+      </div>
+
+      <div class="nav-container">
+        <button
+          class="btn btn-color-1"
+          onclick="return show('mainPage', 'CallerQueuePage')"
+        >
+          Home Menu
+        </button>
+      </div>
+    </div>
+
+    <footer>
+      <p>Copyright &#169; 2024 Elijah Richter. All Rights Reserved.</p>
+    </footer>
+
+    <script id="contactsScript">
+      const currentDate = () => {
+        const now = new Date();
+        return now.toISOString().slice(0, 10);
+      };
+
+      let contacts = {};
+      let dateAdded = [];
+
+      const addNewContact = () => {
+        const name = document.getElementById("nameInput").value;
+        const phoneNum = document.getElementById("phoneInput").value;
+        if (name && phoneNum) {
+          contacts[Object.keys(contacts).length] = { [name]: phoneNum };
+          dateAdded.push(currentDate());
+          document.getElementById("nameInput").value = "";
+          document.getElementById("phoneInput").value = "";
+          updateContactList();
+          document.getElementById("nameInput").focus();
+        } else {
+          alert("Please enter name and phone number.");
+        }
+      };
+
+      function saveContactListToFile() {
+        const content = JSON.stringify({ contacts, dateAdded });
+        const blob = new Blob([content], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "contact_list.json";
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(() => {
+          document.body.removeChild(a);
+          window.URL.revokeObjectURL(url);
+        }, 0);
+        document.getElementById("nameInput").focus();
+      }
+
+      function loadContactListFromFile(event) {
+        const file = event.target.files[0];
+        if (file) {
+          const reader = new FileReader();
+          reader.onload = function (e) {
+            const content = e.target.result;
+            const { contacts: loadedContacts, dateAdded: loadedDateAdded } =
+              JSON.parse(content);
+            // Update contacts and dateAdded arrays
+            contacts = loadedContacts;
+            dateAdded = loadedDateAdded;
+            // Update the UI
+            updateContactList();
+            // Reset the file input element
+            document.getElementById("fileInput").value = "";
+          };
+          reader.readAsText(file);
+        }
+        document.getElementById("nameInput").focus();
+      }
+
+      const clearContacts = () => {
+        contacts = {};
+        dateAdded = [];
+        // Optionally, you can also update the UI to reflect the cleared contacts
+        updateContactList(); // You need to implement this function to update the UI
+        document.getElementById("nameInput").focus();
+      };
+
+      const updateContactList = () => {
+        const contactListElement = document.getElementById("contactList");
+        // Clear existing content
+        contactListElement.innerHTML = "";
+
+        // Rebuild the contact list
+        Object.keys(contacts).forEach((key, i) => {
+          const contact = contacts[key];
+          const date = dateAdded[i];
+          const contactItem = document.createElement("div");
+          contactItem.textContent = `${Object.keys(contact)[0]}: ${
+            Object.values(contact)[0]
+          } (Added on: ${date})`;
+          contactListElement.appendChild(contactItem);
+        });
+        document.getElementById("nameInput").focus();
+      };
+    </script>
+    <script id="callerQueueScript">
+      let toCallQueue = [];
+
+      function addToCallQueue() {
+        const callerName = document.getElementById("callerName").value.trim();
+        if (callerName !== "") {
+          toCallQueue.push(callerName);
+          document.getElementById("callerName").value = "";
+          updateOutput();
+        }
+      }
+
+      function popToCallQueue() {
+        if (toCallQueue.length > 0) {
+          toCallQueue.shift();
+          updateOutput();
+        }
+      }
+
+      function updateOutput() {
+        const outputDiv = document.getElementById("output");
+        outputDiv.innerHTML = "";
+        if (toCallQueue.length < 1) {
+          outputDiv.innerText = "Caller Queue Empty";
+        } else {
+          toCallQueue.forEach((caller, index) => {
+            const p = document.createElement("p");
+            p.innerText = `${index + 1}: ${caller}`;
+            outputDiv.appendChild(p);
+          });
+        }
+      }
+
+      function saveCallQueueToFile() {
+        const content = toCallQueue.join("\n");
+        const blob = new Blob([content], { type: "text/plain" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "caller_queue.txt";
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(() => {
+          document.body.removeChild(a);
+          window.URL.revokeObjectURL(url);
+        }, 0);
+      }
+
+      function loadCallQueueFromFile(event) {
+        const file = event.target.files[0];
+        if (file) {
+          const reader = new FileReader();
+          reader.onload = function (e) {
+            const content = e.target.result;
+            toCallQueue = content
+              .split("\n")
+              .filter((name) => name.trim() !== "");
+            updateOutput();
+
+            // Reset the file input element to allow selecting the same file again
+            event.target.value = null;
+          };
+          reader.readAsText(file);
+        }
+      }
+    </script>
+    <script type="module" src="/src/renderer.js"></script>
+  </body>
+</html>
